@@ -1,17 +1,7 @@
-# aio-logstash
-python asyncio logstash logger adapter
-
-## Installation
-------------
-```Shell
-pip install aio-logstash
-```
-## Usage
------
-```python
 import logging
 import asyncio
 from aio_logstash.handler import TCPHandler
+
 
 async def main():
     handler = TCPHandler()
@@ -27,4 +17,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-```
