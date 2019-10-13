@@ -1,4 +1,4 @@
-from pkg_resources import get_distribution
+"""Python AsyncIO Logstash Logger"""
 
 
-__version__ = get_distribution('aio_logstash').version
+__version__ = '0.1.0'

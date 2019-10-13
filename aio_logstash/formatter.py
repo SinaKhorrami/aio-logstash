@@ -5,6 +5,8 @@ import socket
 import sys
 import time
 import aio_logstash
+import traceback
+from aio_logstash import constants
 from datetime import datetime, date
 
 
@@ -22,18 +24,19 @@ class BaseFormatter(logging.Formatter):
             micro=sys.version_info.micro
         )
         self._program_name = sys.argv[0]
-        self._log_record_attributes = [
-            'args', 'asctime', 'created', 'exc_info', 'exc_text', 'filename',
-            'funcName', 'levelname', 'levelno', 'lineno', 'message', 'module',
-            'msecs', 'msg', 'name', 'pathname', 'process', 'processName',
-            'relativeCreated', 'stack_info', 'thread', 'threadName'
-        ]
 
     @staticmethod
     def _format_timestamp(_time):
         tstamp = datetime.utcfromtimestamp(_time)
 
         return tstamp.strftime("%Y-%m-%dT%H:%M:%S") + ".%03d" % (tstamp.microsecond / 1000) + "Z"
+
+    @staticmethod
+    def _format_stack_trace(exc_info):
+        if exc_info:
+            return ''.join(traceback.format_exception(*exc_info))
+
+        return None
 
     @staticmethod
     def _serialize(message):
@@ -43,7 +46,7 @@ class BaseFormatter(logging.Formatter):
     def format(self, record):
         pass
 
-    def _get_base_fields(self, record):
+    def _get_base_fields(self):
         base_fields = {
             'host': self._host,
             'type': self._message_type,
@@ -51,17 +54,31 @@ class BaseFormatter(logging.Formatter):
             'interpreter_version': self._interpreter_vesion,
             'program': self._program_name,
             'aio_logstash_version': aio_logstash.__version__,
-            'level': record.levelname,
-            'process_name': record.processName
         }
 
         return base_fields
+
+    def _get_record_fields(self, record):
+        record_fields = {
+            'message': record.getMessage(),
+            'pid': record.process,
+            'func_name': record.funcName,
+            'line': record.lineno,
+            'logger_name': record.name,
+            'path': record.pathname,
+            'thread_name': record.threadName,
+            'level': record.levelname,
+            'process_name': record.processName,
+            'stack_trace': self._format_stack_trace(record.exc_info)
+        }
+
+        return record_fields
 
     def _get_extra_fields(self, record):
         extra_fields = dict()
 
         for k, v in record.__dict__.items():
-            if k not in self._log_record_attributes:
+            if k not in constants.LOG_RECORD_DEFAULT_ATTRIBUTES:
                 extra_fields[k] = self._get_value_repr(v)
 
         return extra_fields
@@ -89,10 +106,15 @@ class V1Formatter(BaseFormatter):
             '@version': '1'
         }
 
-        base_fields = self._get_base_fields(record)
+        base_fields = self._get_base_fields()
         message.update(base_fields)
 
+        record_fields = self._get_record_fields(record)
+        message.update(record_fields)
+
         extra_fields = self._get_extra_fields(record)
-        message.update(extra_fields)
+        message.update({
+            'extra': extra_fields
+        })
 
         return self._serialize(message)

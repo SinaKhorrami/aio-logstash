@@ -1,6 +1,7 @@
 import abc
 import asyncio
 import logging
+from aio_logstash import constants
 from aio_logstash.formatter import V1Formatter
 
 
@@ -9,7 +10,6 @@ class BaseHandler(logging.Handler):
     def __init__(self, num_consumers=1):
         super().__init__()
         self.setFormatter(V1Formatter())
-        self._retry_timeout = 1
         self._queue = asyncio.Queue()
         self._consumers = [
             asyncio.create_task(self._consumer()) for _ in range(num_consumers)
@@ -59,7 +59,7 @@ class BaseHandler(logging.Handler):
                 await self._connect()
                 return
             except (OSError, RuntimeError):
-                await asyncio.sleep(self._retry_timeout)
+                await asyncio.sleep(constants.SOCKET_RETRY_TIMEOUT)
 
     async def exit(self):
         await self._queue.join()
@@ -72,8 +72,10 @@ class BaseHandler(logging.Handler):
 
 class TCPHandler(BaseHandler):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, num_consumers=1):
+        super().__init__(
+            num_consumers=num_consumers
+        )
         self._writer = None
 
     async def connect(self, host, port):
