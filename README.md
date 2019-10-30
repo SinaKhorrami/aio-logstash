@@ -1,4 +1,5 @@
 # aio-logstash
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/aio-logstash)
 [![CircleCI](https://img.shields.io/circleci/build/github/SinaKhorami/aio-logstash/master)](https://circleci.com/gh/SinaKhorami/aio-logstash/tree/master)
 [![PyPI version](https://badge.fury.io/py/aio-logstash.svg)](https://badge.fury.io/py/aio-logstash)
 
